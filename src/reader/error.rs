@@ -2,19 +2,20 @@ use crate::capi::strerror;
 
 #[derive(PartialEq)]
 pub enum ReaderConnectError {
-    ShmOpenError(i32),
-    MmapError(i32),
+    ShmOpenError(Option<i32>),
+    MmapError(Option<i32>),
 }
 
 impl std::fmt::Debug for ReaderConnectError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::ShmOpenError(code) => f
-                .debug_tuple("ShmOpenError")
-                .field(&strerror(*code))
-                .finish(),
-            Self::MmapError(code) => f.debug_tuple("MmapError").field(&strerror(*code)).finish(),
-        }
+        let (name, code) = match self {
+            Self::ShmOpenError(code) => ("ShmOpenError", *code),
+            Self::MmapError(code) => ("MmapError", *code),
+        };
+
+        f.debug_tuple(name)
+            .field(&code.map(strerror).unwrap_or("Unspecified Error"))
+            .finish()
     }
 }
 

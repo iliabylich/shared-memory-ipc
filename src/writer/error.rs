@@ -2,45 +2,41 @@ use crate::capi::strerror;
 
 #[derive(PartialEq)]
 pub enum WriterConnectError {
-    ShmOpenError(i32),
-    FtruncateError(i32),
-    MmapError(i32),
+    ShmOpenError(Option<i32>),
+    FtruncateError(Option<i32>),
+    MmapError(Option<i32>),
 }
 
 impl std::fmt::Debug for WriterConnectError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::ShmOpenError(code) => f
-                .debug_tuple("ShmOpenError")
-                .field(&strerror(*code))
-                .finish(),
-            Self::FtruncateError(code) => f
-                .debug_tuple("FtruncateError")
-                .field(&strerror(*code))
-                .finish(),
-            Self::MmapError(code) => f.debug_tuple("MmapError").field(&strerror(*code)).finish(),
-        }
+        let (name, code) = match self {
+            Self::ShmOpenError(code) => ("ShmOpenError", *code),
+            Self::FtruncateError(code) => ("FtruncateError", *code),
+            Self::MmapError(code) => ("MmapError", *code),
+        };
+
+        f.debug_tuple(name)
+            .field(&code.map(strerror).unwrap_or("Unspecified Error"))
+            .finish()
     }
 }
 
 #[derive(PartialEq)]
 pub enum WriterDisconnectError {
-    MunMapError(i32),
-    ShmUnlinkError(i32),
+    MunMapError(Option<i32>),
+    ShmUnlinkError(Option<i32>),
 }
 
 impl std::fmt::Debug for WriterDisconnectError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::MunMapError(code) => f
-                .debug_tuple("MunMapError")
-                .field(&strerror(*code))
-                .finish(),
-            Self::ShmUnlinkError(code) => f
-                .debug_tuple("ShmUnlinkError")
-                .field(&strerror(*code))
-                .finish(),
-        }
+        let (name, code) = match self {
+            Self::MunMapError(code) => ("MunMapError", *code),
+            Self::ShmUnlinkError(code) => ("ShmUnlinkError", *code),
+        };
+
+        f.debug_tuple(name)
+            .field(&code.map(strerror).unwrap_or("Unspecified Error"))
+            .finish()
     }
 }
 
