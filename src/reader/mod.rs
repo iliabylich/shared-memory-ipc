@@ -6,14 +6,14 @@ pub use error::{ReaderConnectError, ReaderError};
 
 use crate::ConnectionType;
 
-pub struct Reader<const QUEUE_SIZE: usize> {
-    root_connection: ReaderConnection<1_000>,
-    current_connection: ReaderConnection<QUEUE_SIZE>,
+pub struct Reader<'p, const QUEUE_SIZE: usize> {
+    root_connection: ReaderConnection<'p, 1_000>,
+    current_connection: ReaderConnection<'p, QUEUE_SIZE>,
 }
 
-impl<const QUEUE_SIZE: usize> Reader<QUEUE_SIZE> {
-    pub fn new(prefix: &'static str) -> Result<Self, ReaderError> {
-        let mut root_connection = ReaderConnection::new(ConnectionType::Root, prefix)?;
+impl<'p, const QUEUE_SIZE: usize> Reader<'p, QUEUE_SIZE> {
+    pub fn new(prefix: &'p str) -> Result<Self, ReaderError> {
+        let mut root_connection = ReaderConnection::new(ConnectionType::Root { prefix })?;
         let current_connection = Self::fetch_new_queue_connection(&mut root_connection)?;
         Ok(Self {
             root_connection,
@@ -23,13 +23,10 @@ impl<const QUEUE_SIZE: usize> Reader<QUEUE_SIZE> {
 
     fn fetch_new_queue_connection<const ROOT_QUEUE_SIZE: usize>(
         root_connection: &mut ReaderConnection<ROOT_QUEUE_SIZE>,
-    ) -> Result<ReaderConnection<QUEUE_SIZE>, ReaderError> {
+    ) -> Result<ReaderConnection<'p, QUEUE_SIZE>, ReaderError> {
         let root_queue = root_connection.queue();
         if let Some(queue_name) = root_queue.pop() {
-            Ok(ReaderConnection::new(
-                ConnectionType::Exact(queue_name),
-                "",
-            )?)
+            Ok(ReaderConnection::new(ConnectionType::Exact(queue_name))?)
         } else {
             Err(ReaderError::FailedToGetNextQueue)
         }

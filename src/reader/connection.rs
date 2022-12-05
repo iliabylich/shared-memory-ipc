@@ -3,20 +3,16 @@ use libc::{mmap, shm_open, MAP_FAILED, MAP_SHARED, O_RDWR, PROT_WRITE, S_IRUSR, 
 use crate::{errno, reader::ReaderConnectError, ConnectionType, Queue};
 
 #[derive(Debug)]
-pub struct ReaderConnection<const QUEUE_SIZE: usize> {
+pub struct ReaderConnection<'p, const QUEUE_SIZE: usize> {
     addr: *mut std::ffi::c_void,
-    connection_type: ConnectionType,
-    prefix: &'static str,
+    connection_type: ConnectionType<'p>,
 }
 
-impl<const QUEUE_SIZE: usize> ReaderConnection<QUEUE_SIZE> {
-    pub fn new(
-        connection_type: ConnectionType,
-        prefix: &'static str,
-    ) -> Result<Self, ReaderConnectError> {
+impl<'p, const QUEUE_SIZE: usize> ReaderConnection<'p, QUEUE_SIZE> {
+    pub fn new(connection_type: ConnectionType<'p>) -> Result<Self, ReaderConnectError> {
         let fd = unsafe {
             shm_open(
-                connection_type.id(prefix).into_raw(),
+                connection_type.id().into_raw(),
                 O_RDWR,
                 (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
             )
@@ -43,7 +39,6 @@ impl<const QUEUE_SIZE: usize> ReaderConnection<QUEUE_SIZE> {
         let conn = Self {
             addr,
             connection_type,
-            prefix,
         };
 
         println!("[Reader] connected to {:?}", conn.id());
@@ -52,7 +47,7 @@ impl<const QUEUE_SIZE: usize> ReaderConnection<QUEUE_SIZE> {
     }
 
     pub(crate) fn id(&self) -> String {
-        self.connection_type.id(self.prefix).into_string().unwrap()
+        self.connection_type.id().into_string().unwrap()
     }
 
     pub(crate) fn queue(&self) -> &'static mut Queue<QUEUE_SIZE> {
@@ -67,8 +62,8 @@ mod tests {
     #[test]
     fn test_success() {
         let connection_type = ConnectionType::Dummy("reader-success");
-        let writer = WriterConnection::<10>::new(connection_type.clone(), "prefix").unwrap();
-        let reader = ReaderConnection::<10>::new(connection_type.clone(), "prefix").unwrap();
+        let writer = WriterConnection::<10>::new(connection_type.clone()).unwrap();
+        let reader = ReaderConnection::<10>::new(connection_type.clone()).unwrap();
 
         let write_ptr = writer.addr.cast::<u8>();
         let read_ptr = reader.addr.cast::<u8>();
@@ -82,7 +77,7 @@ mod tests {
     fn test_reader_without_writer() {
         let connection_type = ConnectionType::Dummy("reader-wo-writer");
 
-        let err = ReaderConnection::<10>::new(connection_type, "prefix").unwrap_err();
+        let err = ReaderConnection::<10>::new(connection_type).unwrap_err();
 
         assert_eq!(
             format!("{:?}", err),

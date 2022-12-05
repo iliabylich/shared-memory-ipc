@@ -6,15 +6,15 @@ pub use error::{WriterConnectError, WriterDisconnectError, WriterError};
 
 use crate::ConnectionType;
 
-pub struct Writer<const QUEUE_SIZE: usize> {
-    root_connection: WriterConnection<1_000>,
-    connections: Vec<WriterConnection<QUEUE_SIZE>>,
-    prefix: &'static str,
+pub struct Writer<'p, const QUEUE_SIZE: usize> {
+    root_connection: WriterConnection<'p, 1_000>,
+    connections: Vec<WriterConnection<'p, QUEUE_SIZE>>,
+    prefix: &'p str,
 }
 
-impl<const QUEUE_SIZE: usize> Writer<QUEUE_SIZE> {
-    pub fn new(prefix: &'static str) -> Result<Self, WriterError> {
-        let root_connection = WriterConnection::new(ConnectionType::Root, prefix)?;
+impl<'p, const QUEUE_SIZE: usize> Writer<'p, QUEUE_SIZE> {
+    pub fn new(prefix: &'p str) -> Result<Self, WriterError> {
+        let root_connection = WriterConnection::new(ConnectionType::Root { prefix })?;
         let mut writer = Self {
             root_connection,
             connections: vec![],
@@ -38,8 +38,10 @@ impl<const QUEUE_SIZE: usize> Writer<QUEUE_SIZE> {
     pub(crate) fn provision_new_queue_connection(&mut self) -> Result<(), WriterError> {
         self.cleanup()?;
 
-        let connection =
-            WriterConnection::new(ConnectionType::Worker(self.connections.len()), self.prefix)?;
+        let connection = WriterConnection::new(ConnectionType::Worker {
+            n: self.connections.len(),
+            prefix: self.prefix,
+        })?;
 
         self.connections.push(connection);
         self.notify_about_new_queue();
@@ -68,7 +70,7 @@ impl<const QUEUE_SIZE: usize> Writer<QUEUE_SIZE> {
     }
 }
 
-impl<const QUEUE_SIZE: usize> Drop for Writer<QUEUE_SIZE> {
+impl<'p, const QUEUE_SIZE: usize> Drop for Writer<'p, QUEUE_SIZE> {
     fn drop(&mut self) {
         self.root_connection.disconnect().unwrap();
 

@@ -10,21 +10,17 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct WriterConnection<const QUEUE_SIZE: usize> {
+pub struct WriterConnection<'p, const QUEUE_SIZE: usize> {
     fd: i32,
     pub(crate) addr: *mut std::ffi::c_void,
-    connection_type: ConnectionType,
-    prefix: &'static str,
+    connection_type: ConnectionType<'p>,
 }
 
-impl<const QUEUE_SIZE: usize> WriterConnection<QUEUE_SIZE> {
-    pub fn new(
-        connection_type: ConnectionType,
-        prefix: &'static str,
-    ) -> Result<Self, WriterConnectError> {
+impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
+    pub fn new(connection_type: ConnectionType<'p>) -> Result<Self, WriterConnectError> {
         let fd = unsafe {
             shm_open(
-                connection_type.id(prefix).into_raw(),
+                connection_type.id().into_raw(),
                 O_RDWR | O_CREAT,
                 (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
             )
@@ -57,7 +53,6 @@ impl<const QUEUE_SIZE: usize> WriterConnection<QUEUE_SIZE> {
             fd,
             addr,
             connection_type,
-            prefix,
         };
         println!("[Writer] Connected {:?}", conn.id());
 
@@ -65,7 +60,7 @@ impl<const QUEUE_SIZE: usize> WriterConnection<QUEUE_SIZE> {
     }
 
     pub(crate) fn id(&self) -> String {
-        self.connection_type.id(self.prefix).into_string().unwrap()
+        self.connection_type.id().into_string().unwrap()
     }
 
     pub(crate) fn is_stale(&self) -> bool {
@@ -88,7 +83,7 @@ impl<const QUEUE_SIZE: usize> WriterConnection<QUEUE_SIZE> {
             return Err(WriterDisconnectError::MunMapError(code));
         }
 
-        let code = unsafe { shm_unlink(self.connection_type.id(self.prefix).into_raw()) };
+        let code = unsafe { shm_unlink(self.connection_type.id().into_raw()) };
         if code == -1 {
             return Err(WriterDisconnectError::ShmUnlinkError(code));
         }
@@ -101,7 +96,7 @@ impl<const QUEUE_SIZE: usize> WriterConnection<QUEUE_SIZE> {
     }
 }
 
-impl<const N: usize> Drop for WriterConnection<N> {
+impl<'p, const N: usize> Drop for WriterConnection<'p, N> {
     fn drop(&mut self) {
         println!("[Writer] Disconnecting {:?}", self.id());
         self.disconnect().unwrap();
@@ -115,7 +110,7 @@ mod tests {
     #[test]
     fn test_success() {
         let connection_type = ConnectionType::Dummy("writer-success");
-        let connection = WriterConnection::<10>::new(connection_type, "prefix").unwrap();
+        let connection = WriterConnection::<10>::new(connection_type).unwrap();
 
         let write_ptr = connection.addr.cast::<u8>();
         unsafe {
@@ -128,7 +123,7 @@ mod tests {
     fn test_invalid_name() {
         let connection_type = ConnectionType::Empty;
 
-        let err = WriterConnection::<10>::new(connection_type, "prefix").unwrap_err();
+        let err = WriterConnection::<10>::new(connection_type).unwrap_err();
 
         assert_eq!(format!("{:?}", err), "ShmOpenError(\"Invalid argument\")")
     }
