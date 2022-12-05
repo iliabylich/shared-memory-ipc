@@ -7,16 +7,16 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct WriterConnection<'p, const QUEUE_SIZE: usize> {
+pub struct WriterConnection<const QUEUE_SIZE: usize> {
     fd: i32,
     pub(crate) addr: *mut std::ffi::c_void,
-    connection_type: ConnectionType<'p>,
+    connection_type: ConnectionType,
 }
 
-impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
-    pub fn new(connection_type: ConnectionType<'p>) -> Result<Self, WriterConnectError> {
+impl<const QUEUE_SIZE: usize> WriterConnection<QUEUE_SIZE> {
+    pub fn new(connection_type: ConnectionType) -> Result<Self, WriterConnectError> {
         let fd = shm_open(
-            connection_type.id().as_c_str(),
+            connection_type.id(),
             O_RDWR | O_CREAT,
             (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
         )
@@ -44,8 +44,8 @@ impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
         Ok(conn)
     }
 
-    pub(crate) fn id(&self) -> String {
-        self.connection_type.id().into_string().unwrap()
+    pub(crate) fn id(&self) -> &std::ffi::CStr {
+        self.connection_type.id()
     }
 
     pub(crate) fn is_stale(&self) -> bool {
@@ -64,8 +64,7 @@ impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
         self.fd = 0;
 
         munmap(addr, QUEUE_SIZE).map_err(WriterDisconnectError::MunMapError)?;
-        shm_unlink(self.connection_type.id().as_c_str())
-            .map_err(WriterDisconnectError::ShmUnlinkError)?;
+        shm_unlink(self.connection_type.id()).map_err(WriterDisconnectError::ShmUnlinkError)?;
 
         Ok(())
     }
@@ -75,7 +74,7 @@ impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
     }
 }
 
-impl<'p, const N: usize> Drop for WriterConnection<'p, N> {
+impl<const N: usize> Drop for WriterConnection<N> {
     fn drop(&mut self) {
         println!("[Writer] Disconnecting {:?}", self.id());
         self.disconnect().unwrap();
@@ -88,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_success() {
-        let connection_type = ConnectionType::Dummy("writer-success");
+        let connection_type = ConnectionType::dummy("writer-success");
         let connection = WriterConnection::<10>::new(connection_type).unwrap();
 
         let write_ptr = connection.addr.cast::<u8>();
@@ -100,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_invalid_name() {
-        let connection_type = ConnectionType::Empty;
+        let connection_type = ConnectionType::empty();
 
         let err = WriterConnection::<10>::new(connection_type).unwrap_err();
 

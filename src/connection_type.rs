@@ -1,35 +1,47 @@
+use std::ffi::{CStr, CString};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ConnectionType<'p> {
-    Root {
-        prefix: &'p str,
-    },
-    Worker {
-        n: usize,
-        prefix: &'p str,
-    },
-    Exact(Vec<u8>),
-
-    #[cfg(test)]
-    Dummy(&'static str),
-
-    #[cfg(test)]
-    Empty,
+pub struct ConnectionType {
+    id: CString,
 }
 
-impl<'p> ConnectionType<'p> {
-    pub fn id(&self) -> std::ffi::CString {
-        let id = match self {
-            Self::Root { prefix } => format!("/{}-root", prefix),
-            Self::Worker { n, prefix } => format!("/{}-worker-{}", prefix, n),
-            Self::Exact(name) => return std::ffi::CString::new(name.to_owned()).unwrap(),
+impl ConnectionType {
+    pub fn root(prefix: &str) -> Self {
+        let id = format!("/{}-root", prefix);
+        Self {
+            id: CString::new(id).unwrap(),
+        }
+    }
 
-            #[cfg(test)]
-            Self::Dummy(s) => format!("test-{}", s),
+    pub fn worker(n: usize, prefix: &str) -> Self {
+        let id = format!("/{}-worker-{}", prefix, n);
+        Self {
+            id: CString::new(id).unwrap(),
+        }
+    }
 
-            #[cfg(test)]
-            Self::Empty => return std::ffi::CString::new("").unwrap(),
-        };
+    pub fn exact(name: &[u8]) -> Self {
+        Self {
+            id: CString::new(name.to_vec()).unwrap(),
+        }
+    }
 
-        std::ffi::CString::new(id).unwrap()
+    #[cfg(test)]
+    pub fn dummy(name: &str) -> Self {
+        let id = format!("/{}", name);
+        Self {
+            id: CString::new(id).unwrap(),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn empty() -> Self {
+        Self {
+            id: CString::new("").unwrap(),
+        }
+    }
+
+    pub fn id(&self) -> &CStr {
+        self.id.as_c_str()
     }
 }

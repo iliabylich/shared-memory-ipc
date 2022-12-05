@@ -7,15 +7,15 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct ReaderConnection<'p, const QUEUE_SIZE: usize> {
+pub struct ReaderConnection<const QUEUE_SIZE: usize> {
     addr: *mut std::ffi::c_void,
-    connection_type: ConnectionType<'p>,
+    connection_type: ConnectionType,
 }
 
-impl<'p, const QUEUE_SIZE: usize> ReaderConnection<'p, QUEUE_SIZE> {
-    pub fn new(connection_type: ConnectionType<'p>) -> Result<Self, ReaderConnectError> {
+impl<const QUEUE_SIZE: usize> ReaderConnection<QUEUE_SIZE> {
+    pub fn new(connection_type: ConnectionType) -> Result<Self, ReaderConnectError> {
         let fd = shm_open(
-            connection_type.id().as_c_str(),
+            connection_type.id(),
             O_RDWR,
             (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
         )
@@ -41,8 +41,8 @@ impl<'p, const QUEUE_SIZE: usize> ReaderConnection<'p, QUEUE_SIZE> {
         Ok(conn)
     }
 
-    pub(crate) fn id(&self) -> String {
-        self.connection_type.id().into_string().unwrap()
+    pub(crate) fn id(&self) -> &std::ffi::CStr {
+        self.connection_type.id()
     }
 
     pub(crate) fn queue(&self) -> &'static mut Queue<QUEUE_SIZE> {
@@ -56,7 +56,7 @@ mod tests {
 
     #[test]
     fn test_success() {
-        let connection_type = ConnectionType::Dummy("reader-success");
+        let connection_type = ConnectionType::dummy("reader-success");
         let writer = WriterConnection::<10>::new(connection_type.clone()).unwrap();
         let reader = ReaderConnection::<10>::new(connection_type.clone()).unwrap();
 
@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn test_reader_without_writer() {
-        let connection_type = ConnectionType::Dummy("reader-wo-writer");
+        let connection_type = ConnectionType::dummy("reader-wo-writer");
 
         let err = ReaderConnection::<10>::new(connection_type).unwrap_err();
 
