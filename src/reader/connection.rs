@@ -15,7 +15,7 @@ pub struct ReaderConnection<'p, const QUEUE_SIZE: usize> {
 impl<'p, const QUEUE_SIZE: usize> ReaderConnection<'p, QUEUE_SIZE> {
     pub fn new(connection_type: ConnectionType<'p>) -> Result<Self, ReaderConnectError> {
         let fd = shm_open(
-            connection_type.id().into_raw(),
+            connection_type.id().as_c_str(),
             O_RDWR,
             (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
         )

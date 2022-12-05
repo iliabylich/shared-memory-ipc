@@ -1,4 +1,4 @@
-use std::ffi::{c_int, c_uint, c_void};
+use std::ffi::{c_int, c_uint, c_void, CStr};
 
 pub(crate) fn strerror(code: c_int) -> &'static str {
     let err = unsafe { libc::strerror(code) };
@@ -10,8 +10,8 @@ pub(crate) fn errno() -> i32 {
     std::io::Error::last_os_error().raw_os_error().unwrap()
 }
 
-pub(crate) fn shm_open(name: *const i8, oflag: c_int, mode: c_uint) -> Result<i32, i32> {
-    let fd = unsafe { libc::shm_open(name, oflag, mode) };
+pub(crate) fn shm_open(name: &CStr, oflag: c_int, mode: c_uint) -> Result<i32, i32> {
+    let fd = unsafe { libc::shm_open(name.as_ptr(), oflag, mode) };
     if fd == -1 {
         Err(errno())
     } else {
@@ -53,8 +53,8 @@ pub(crate) fn munmap(addr: *mut c_void, length: usize) -> Result<(), i32> {
     }
 }
 
-pub(crate) fn shm_unlink(name: *const i8) -> Result<(), i32> {
-    let code = unsafe { libc::shm_unlink(name) };
+pub(crate) fn shm_unlink(name: &CStr) -> Result<(), i32> {
+    let code = unsafe { libc::shm_unlink(name.as_ptr()) };
     if code == -1 {
         Err(errno())
     } else {

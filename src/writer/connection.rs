@@ -16,7 +16,7 @@ pub struct WriterConnection<'p, const QUEUE_SIZE: usize> {
 impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
     pub fn new(connection_type: ConnectionType<'p>) -> Result<Self, WriterConnectError> {
         let fd = shm_open(
-            connection_type.id().into_raw(),
+            connection_type.id().as_c_str(),
             O_RDWR | O_CREAT,
             (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
         )
@@ -64,7 +64,7 @@ impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
         self.fd = 0;
 
         munmap(addr, QUEUE_SIZE).map_err(WriterDisconnectError::MunMapError)?;
-        shm_unlink(self.connection_type.id().into_raw())
+        shm_unlink(self.connection_type.id().as_c_str())
             .map_err(WriterDisconnectError::ShmUnlinkError)?;
 
         Ok(())
