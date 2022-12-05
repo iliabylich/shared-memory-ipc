@@ -30,6 +30,6 @@ impl<'p> ConnectionType<'p> {
             Self::Empty => return std::ffi::CString::new("").unwrap(),
         };
 
-        unsafe { std::ffi::CString::new(id).unwrap_unchecked() }
+        std::ffi::CString::new(id).unwrap()
     }
 }

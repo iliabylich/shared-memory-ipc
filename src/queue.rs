@@ -21,7 +21,8 @@ impl<const N: usize> std::fmt::Debug for Queue<N> {
 
 impl<const N: usize> Queue<N> {
     pub(crate) fn from_ptr(ptr: *mut std::ffi::c_void) -> &'static mut Self {
-        unsafe { (ptr as *mut Queue<N>).as_mut().unwrap() }
+        let ptr = ptr as *mut Queue<N>;
+        unsafe { ptr.as_mut() }.unwrap()
     }
 
     pub(crate) fn push(&mut self, message: &[u8]) {
@@ -30,20 +31,12 @@ impl<const N: usize> Queue<N> {
         self.end += 1;
 
         // write content
-        unsafe {
-            std::ptr::copy_nonoverlapping(
-                message.as_ptr(),
-                (&mut self.data as *mut u8).add(self.end),
-                message.len(),
-            )
-        }
+        self.data[self.end..self.end + message.len()].clone_from_slice(message);
         self.end += message.len();
     }
 
     pub(crate) fn can_push(&mut self, message: &[u8]) -> bool {
         let left = N - self.end;
-        dbg!(left);
-        dbg!(message.len());
         left >= message.len() + 1
     }
 
