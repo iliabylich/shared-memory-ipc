@@ -1,8 +1,4 @@
-mod c_code_to_err;
-pub(crate) use c_code_to_err::c_code_to_err;
-
-mod errno;
-pub(crate) use errno::errno;
+mod capi;
 
 mod config;
 

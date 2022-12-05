@@ -1,4 +1,4 @@
-use crate::c_code_to_err;
+use crate::capi::strerror;
 
 #[derive(PartialEq)]
 pub enum WriterConnectError {
@@ -12,16 +12,13 @@ impl std::fmt::Debug for WriterConnectError {
         match self {
             Self::ShmOpenError(code) => f
                 .debug_tuple("ShmOpenError")
-                .field(&c_code_to_err(*code))
+                .field(&strerror(*code))
                 .finish(),
             Self::FtruncateError(code) => f
                 .debug_tuple("FtruncateError")
-                .field(&c_code_to_err(*code))
+                .field(&strerror(*code))
                 .finish(),
-            Self::MmapError(code) => f
-                .debug_tuple("MmapError")
-                .field(&c_code_to_err(*code))
-                .finish(),
+            Self::MmapError(code) => f.debug_tuple("MmapError").field(&strerror(*code)).finish(),
         }
     }
 }
@@ -37,11 +34,11 @@ impl std::fmt::Debug for WriterDisconnectError {
         match self {
             Self::MunMapError(code) => f
                 .debug_tuple("MunMapError")
-                .field(&c_code_to_err(*code))
+                .field(&strerror(*code))
                 .finish(),
             Self::ShmUnlinkError(code) => f
                 .debug_tuple("ShmUnlinkError")
-                .field(&c_code_to_err(*code))
+                .field(&strerror(*code))
                 .finish(),
         }
     }

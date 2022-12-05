@@ -1,6 +1,10 @@
-use libc::{mmap, shm_open, MAP_FAILED, MAP_SHARED, O_RDWR, PROT_WRITE, S_IRUSR, S_IWUSR};
+use libc::{MAP_SHARED, O_RDWR, PROT_WRITE, S_IRUSR, S_IWUSR};
 
-use crate::{errno, reader::ReaderConnectError, ConnectionType, Queue};
+use crate::{
+    capi::{mmap, shm_open},
+    reader::ReaderConnectError,
+    ConnectionType, Queue,
+};
 
 #[derive(Debug)]
 pub struct ReaderConnection<'p, const QUEUE_SIZE: usize> {
@@ -10,31 +14,22 @@ pub struct ReaderConnection<'p, const QUEUE_SIZE: usize> {
 
 impl<'p, const QUEUE_SIZE: usize> ReaderConnection<'p, QUEUE_SIZE> {
     pub fn new(connection_type: ConnectionType<'p>) -> Result<Self, ReaderConnectError> {
-        let fd = unsafe {
-            shm_open(
-                connection_type.id().into_raw(),
-                O_RDWR,
-                (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
-            )
-        };
+        let fd = shm_open(
+            connection_type.id().into_raw(),
+            O_RDWR,
+            (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
+        )
+        .map_err(ReaderConnectError::ShmOpenError)?;
 
-        if fd == -1 {
-            return Err(ReaderConnectError::ShmOpenError(errno().unwrap()));
-        }
-
-        let addr = unsafe {
-            mmap(
-                std::ptr::null_mut(),
-                QUEUE_SIZE,
-                PROT_WRITE,
-                MAP_SHARED,
-                fd,
-                0,
-            )
-        };
-        if addr == MAP_FAILED {
-            return Err(ReaderConnectError::MmapError(errno().unwrap()));
-        }
+        let addr = mmap(
+            std::ptr::null_mut(),
+            QUEUE_SIZE,
+            PROT_WRITE,
+            MAP_SHARED,
+            fd,
+            0,
+        )
+        .map_err(ReaderConnectError::MmapError)?;
 
         let conn = Self {
             addr,

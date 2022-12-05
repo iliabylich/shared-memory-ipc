@@ -1,4 +1,4 @@
-use crate::c_code_to_err;
+use crate::capi::strerror;
 
 #[derive(PartialEq)]
 pub enum ReaderConnectError {
@@ -11,12 +11,9 @@ impl std::fmt::Debug for ReaderConnectError {
         match self {
             Self::ShmOpenError(code) => f
                 .debug_tuple("ShmOpenError")
-                .field(&c_code_to_err(*code))
+                .field(&strerror(*code))
                 .finish(),
-            Self::MmapError(code) => f
-                .debug_tuple("MmapError")
-                .field(&c_code_to_err(*code))
-                .finish(),
+            Self::MmapError(code) => f.debug_tuple("MmapError").field(&strerror(*code)).finish(),
         }
     }
 }

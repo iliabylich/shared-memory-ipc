@@ -1,10 +1,7 @@
-use libc::{
-    ftruncate, mmap, munmap, shm_open, shm_unlink, MAP_FAILED, MAP_SHARED, O_CREAT, O_RDWR,
-    PROT_WRITE, S_IRUSR, S_IWUSR,
-};
+use libc::{MAP_SHARED, O_CREAT, O_RDWR, PROT_WRITE, S_IRUSR, S_IWUSR};
 
 use crate::{
-    errno,
+    capi::{ftruncate, mmap, munmap, shm_open, shm_unlink},
     writer::error::{WriterConnectError, WriterDisconnectError},
     ConnectionType, Queue,
 };
@@ -18,36 +15,24 @@ pub struct WriterConnection<'p, const QUEUE_SIZE: usize> {
 
 impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
     pub fn new(connection_type: ConnectionType<'p>) -> Result<Self, WriterConnectError> {
-        let fd = unsafe {
-            shm_open(
-                connection_type.id().into_raw(),
-                O_RDWR | O_CREAT,
-                (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
-            )
-        };
+        let fd = shm_open(
+            connection_type.id().into_raw(),
+            O_RDWR | O_CREAT,
+            (S_IRUSR | S_IWUSR) as std::ffi::c_uint,
+        )
+        .map_err(WriterConnectError::ShmOpenError)?;
 
-        if fd == -1 {
-            return Err(WriterConnectError::ShmOpenError(errno().unwrap()));
-        }
+        ftruncate(fd, QUEUE_SIZE as i64).map_err(WriterConnectError::FtruncateError)?;
 
-        let res = unsafe { ftruncate(fd, QUEUE_SIZE as i64) };
-        if res == -1 {
-            return Err(WriterConnectError::FtruncateError(errno().unwrap()));
-        }
-
-        let addr = unsafe {
-            mmap(
-                std::ptr::null_mut(),
-                QUEUE_SIZE,
-                PROT_WRITE,
-                MAP_SHARED,
-                fd,
-                0,
-            )
-        };
-        if addr == MAP_FAILED {
-            return Err(WriterConnectError::MmapError(errno().unwrap()));
-        }
+        let addr = mmap(
+            std::ptr::null_mut(),
+            QUEUE_SIZE,
+            PROT_WRITE,
+            MAP_SHARED,
+            fd,
+            0,
+        )
+        .map_err(WriterConnectError::MmapError)?;
 
         let conn = Self {
             fd,
@@ -78,15 +63,9 @@ impl<'p, const QUEUE_SIZE: usize> WriterConnection<'p, QUEUE_SIZE> {
         self.addr = std::ptr::null_mut();
         self.fd = 0;
 
-        let code = unsafe { munmap(addr, QUEUE_SIZE) };
-        if code == -1 {
-            return Err(WriterDisconnectError::MunMapError(code));
-        }
-
-        let code = unsafe { shm_unlink(self.connection_type.id().into_raw()) };
-        if code == -1 {
-            return Err(WriterDisconnectError::ShmUnlinkError(code));
-        }
+        munmap(addr, QUEUE_SIZE).map_err(WriterDisconnectError::MunMapError)?;
+        shm_unlink(self.connection_type.id().into_raw())
+            .map_err(WriterDisconnectError::ShmUnlinkError)?;
 
         Ok(())
     }
