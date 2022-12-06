@@ -63,11 +63,14 @@ impl<const N: usize> Queue<N> {
     }
 
     pub(crate) fn can_pop(&self) -> bool {
-        self.start < N
+        match self.data.get(self.start) {
+            None | Some(0) => false,
+            _ => true,
+        }
     }
 
     pub(crate) fn pop(&mut self) -> Option<Vec<u8>> {
-        println!("[Reader] queue = {:?}", self);
+        // println!("[Reader] queue = {:?}", self);
         if let Some(message) = self.message_at(self.start) {
             self.start += message.len() + 1;
             Some(message)

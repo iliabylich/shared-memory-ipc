@@ -25,7 +25,7 @@ impl<'p, const QUEUE_SIZE: usize> Writer<'p, QUEUE_SIZE> {
         Ok(writer)
     }
 
-    pub fn cleanup(&mut self) -> Result<(), WriterError> {
+    pub(crate) fn cleanup(&mut self) -> Result<(), WriterError> {
         for connection in &mut self.connections {
             if connection.is_stale() {
                 connection.disconnect()?;

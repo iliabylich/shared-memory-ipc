@@ -1,7 +1,5 @@
 mod capi;
 
-mod config;
-
 mod connection_type;
 pub use connection_type::ConnectionType;
 
