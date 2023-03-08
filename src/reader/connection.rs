@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_success() {
-        let connection_type = ConnectionType::dummy("reader-success");
+        let connection_type = ConnectionType::random();
         let writer = WriterConnection::<10>::new(connection_type.clone()).unwrap();
         let reader = ReaderConnection::<10>::new(connection_type.clone()).unwrap();
 
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_reader_without_writer() {
-        let connection_type = ConnectionType::dummy("reader-wo-writer");
+        let connection_type = ConnectionType::random();
 
         let err = ReaderConnection::<10>::new(connection_type).unwrap_err();
 

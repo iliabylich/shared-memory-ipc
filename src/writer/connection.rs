@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn test_success() {
-        let connection_type = ConnectionType::dummy("writer-success");
+        let connection_type = ConnectionType::random();
         let connection = WriterConnection::<10>::new(connection_type).unwrap();
 
         let write_ptr = connection.addr.cast::<u8>();

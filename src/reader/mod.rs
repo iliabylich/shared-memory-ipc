@@ -53,8 +53,10 @@ mod tests {
 
     #[test]
     fn test_reader() {
-        let mut writer = Writer::<20>::new("full-test").unwrap();
-        let mut reader = Reader::<20>::new("full-test").unwrap();
+        let prefix = crate::random_name();
+
+        let mut writer = Writer::<20>::new(&prefix).unwrap();
+        let mut reader = Reader::<20>::new(&prefix).unwrap();
 
         // queue 1
         writer.ipc_push(b"111111111").unwrap();

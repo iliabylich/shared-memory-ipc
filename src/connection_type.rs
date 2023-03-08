@@ -27,7 +27,9 @@ impl ConnectionType {
     }
 
     #[cfg(test)]
-    pub fn dummy(name: &str) -> Self {
+    pub fn random() -> Self {
+        let name = crate::random_name();
+
         let id = format!("/{}", name);
         Self {
             id: CString::new(id).unwrap(),

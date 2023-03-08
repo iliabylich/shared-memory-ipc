@@ -10,3 +10,8 @@ pub use writer::{
 
 mod reader;
 pub use reader::{Reader, ReaderConnectError, ReaderConnection};
+
+#[cfg(test)]
+mod random_name;
+#[cfg(test)]
+pub use random_name::random_name;

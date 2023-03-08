@@ -89,7 +89,9 @@ mod tests {
 
     #[test]
     fn test_queue_provisioning() {
-        let mut writer = Writer::<QUEUE_SIZE>::new("writer").unwrap();
+        let prefix = crate::random_name();
+
+        let mut writer = Writer::<QUEUE_SIZE>::new(&prefix).unwrap();
 
         writer.ipc_push(b"111111111").unwrap();
         writer.ipc_push(b"222222222").unwrap();
@@ -99,7 +101,10 @@ mod tests {
         let root_queue = writer.root_connection.queue();
         assert_eq!(
             root_queue.messages(),
-            vec!["/writer-worker-0", "/writer-worker-1",]
+            vec![
+                format!("/{}-worker-0", prefix),
+                format!("/{}-worker-1", prefix)
+            ]
         );
 
         let queue1 = writer.connections[0].queue();
@@ -111,7 +116,9 @@ mod tests {
 
     #[test]
     fn test_cleanup() {
-        let mut writer = Writer::<QUEUE_SIZE>::new("writer-2").unwrap();
+        let prefix = crate::random_name();
+
+        let mut writer = Writer::<QUEUE_SIZE>::new(&prefix).unwrap();
 
         writer.ipc_push(b"111111111").unwrap();
         writer.ipc_push(b"222222222").unwrap();
