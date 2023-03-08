@@ -2,8 +2,8 @@ use libc::{MAP_SHARED, O_RDWR, PROT_WRITE, S_IRUSR, S_IWUSR};
 
 use crate::{
     capi::{mmap, shm_open},
-    reader::ReaderConnectError,
-    ConnectionType, Queue,
+    reader::{queue::Queue, ReaderConnectError},
+    ConnectionType,
 };
 
 #[derive(Debug)]
@@ -30,6 +30,8 @@ impl<const QUEUE_SIZE: usize> ReaderConnection<QUEUE_SIZE> {
             0,
         )
         .map_err(ReaderConnectError::MmapError)?;
+
+        println!("reader: addr = {:?}", addr);
 
         let conn = Self {
             addr,

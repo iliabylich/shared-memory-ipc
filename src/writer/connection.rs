@@ -2,8 +2,11 @@ use libc::{MAP_SHARED, O_CREAT, O_RDWR, PROT_WRITE, S_IRUSR, S_IWUSR};
 
 use crate::{
     capi::{ftruncate, mmap, munmap, shm_open, shm_unlink},
-    writer::error::{WriterConnectError, WriterDisconnectError},
-    ConnectionType, Queue,
+    writer::{
+        error::{WriterConnectError, WriterDisconnectError},
+        queue::Queue,
+    },
+    ConnectionType,
 };
 
 #[derive(Debug)]
@@ -33,6 +36,8 @@ impl<const QUEUE_SIZE: usize> WriterConnection<QUEUE_SIZE> {
             0,
         )
         .map_err(WriterConnectError::MmapError)?;
+
+        println!("writer: addr = {:?}", addr);
 
         let conn = Self {
             fd,

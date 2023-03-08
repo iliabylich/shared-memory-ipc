@@ -25,21 +25,6 @@ impl<const N: usize> Queue<N> {
         unsafe { ptr.as_mut() }.unwrap()
     }
 
-    pub(crate) fn push(&mut self, message: &[u8]) {
-        // write length
-        self.data[self.end] = message.len() as u8;
-        self.end += 1;
-
-        // write content
-        self.data[self.end..self.end + message.len()].clone_from_slice(message);
-        self.end += message.len();
-    }
-
-    pub(crate) fn can_push(&mut self, message: &[u8]) -> bool {
-        let left = N - self.end;
-        left >= message.len() + 1
-    }
-
     fn message_at(&self, at: usize) -> Option<Vec<u8>> {
         let length = *self.data.get(at)?;
         if length == 0 {

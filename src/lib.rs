@@ -10,6 +10,3 @@ pub use writer::{
 
 mod reader;
 pub use reader::{Reader, ReaderConnectError, ReaderConnection};
-
-mod queue;
-pub(crate) use queue::Queue;

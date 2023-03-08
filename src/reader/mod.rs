@@ -4,6 +4,8 @@ pub use connection::ReaderConnection;
 mod error;
 pub use error::{ReaderConnectError, ReaderError};
 
+mod queue;
+
 use crate::ConnectionType;
 
 pub struct Reader<const QUEUE_SIZE: usize> {
